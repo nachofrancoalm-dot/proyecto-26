@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>Para ti, Mamá</title>
+<title>Para ti</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
@@ -136,8 +136,8 @@
   </div>
 
   <div id="cover">
-    <div class="kicker" id="cKick">Un regalo para ti</div>
-    <h1 id="cName">Mamá</h1>
+    <div class="kicker" id="cKick">Un regalo</div>
+    <h1 id="cName">Para ti</h1>
     <div class="rule"></div>
     <p>Antes de empezar, apaga la luz de la habitación y sube un poco el volumen.</p>
     <button id="start" type="button">Ya está apagada</button>
@@ -150,7 +150,7 @@
    PERSONALIZA AQUÍ (deja "" lo que no quieras que salga)
    ========================================================= */
 const CONFIG = {
-  nombre:   "Mamá",                // cómo aparece en la portada y la felicitación
+  nombre:   "",                    // nombre en portada y felicitación (vacío = "Para ti")
   firma:    "",                    // quién firma la entrada (vacío = sin firma)
   fecha:    "",                    // p. ej. "Sábado 12 de diciembre"
   hora:     "",                    // p. ej. "21:00"
@@ -176,8 +176,7 @@ const sleep = ms => new Promise(r=>setTimeout(r,ms));
 const rand = (a,b)=>a+Math.random()*(b-a);
 
 /* ---------- textos personalizados ---------- */
-$("#cName").textContent = CONFIG.nombre;
-document.title = "Para ti, " + CONFIG.nombre;
+if(CONFIG.nombre){ $("#cName").textContent = CONFIG.nombre; $("#cKick").textContent="Un regalo para ti"; document.title = "Para ti, " + CONFIG.nombre; }
 $("#tmsg").textContent = CONFIG.mensaje;
 $("#tsign").textContent = CONFIG.firma ? "Con cariño, " + CONFIG.firma : "";
 (function rows(){
@@ -192,7 +191,9 @@ function buildHidden(){
   big.className="word big";
   big.style.left="50%"; big.style.top="47%";
   big.style.fontSize="clamp(44px,13vw,96px)";
-  big.innerHTML=`<small>Hoy es tu día</small>Feliz<br>cumpleaños,<br><em>${CONFIG.nombre}</em>`;
+  big.innerHTML = CONFIG.nombre
+    ? `<small>Hoy es tu día</small>Feliz<br>cumpleaños,<br><em>${CONFIG.nombre}</em>`
+    : `<small>Hoy es tu día</small>Feliz<br><em>cumpleaños</em>`;
   hidden.appendChild(big);
   // posiciones repartidas alrededor del mensaje central (fracciones de pantalla)
   TITULOS.forEach(([t,x,y])=>{

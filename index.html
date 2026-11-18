@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Para ti, Mamá</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --gold:#e9c27a; --gold-soft:#c9a25e; --gold-deep:#8a6a34;
+    --ink:#060504; --cream:#f6e9cf;
+    --serif:"Cormorant Garamond", Georgia, "Times New Roman", serif;
+    --sans:"Jost", system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%;background:var(--ink);color:var(--cream);overflow:hidden;
+    font-family:var(--serif);-webkit-user-select:none;user-select:none;touch-action:manipulation}
+  #stage{position:fixed;inset:0;overflow:hidden;cursor:pointer}
+
+  /* Capa oculta: solo se ve donde llega la luz de las velas */
+  #hidden{position:absolute;inset:0;pointer-events:none;
+    -webkit-mask-image:radial-gradient(circle at 50% 50%, transparent 0, transparent 1px);
+            mask-image:radial-gradient(circle at 50% 50%, transparent 0, transparent 1px);
+    -webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;transition:opacity 2s ease}
+  #hidden.full{-webkit-mask-image:none;mask-image:none}
+  .word{position:absolute;transform:translate(-50%,-50%) rotate(var(--r,0deg));white-space:nowrap;
+    font-style:italic;color:var(--gold);letter-spacing:.01em;
+    text-shadow:0 0 18px rgba(233,194,122,.35);transition:opacity 1.6s ease, transform 1.6s ease}
+  .word.big{font-style:normal;font-weight:500;text-align:center;line-height:1.02;white-space:normal;
+    width:86vw;max-width:620px;color:var(--cream);text-shadow:0 0 30px rgba(233,170,90,.45)}
+  .word.big small{display:block;font-family:var(--sans);font-weight:300;font-style:normal;
+    font-size:.16em;letter-spacing:.42em;text-transform:uppercase;color:var(--gold-soft);margin-bottom:.9em}
+  .word.big em{font-style:italic;color:var(--gold)}
+
+  canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+
+  /* Textos de guía */
+  .ui{position:absolute;left:0;right:0;text-align:center;pointer-events:none;padding:0 28px}
+  #hint{bottom:max(9vh, calc(env(safe-area-inset-bottom) + 40px));font-family:var(--sans);font-weight:300;
+    font-size:13px;letter-spacing:.28em;text-transform:uppercase;color:rgba(246,233,207,.55);
+    transition:opacity 1.2s ease}
+  #hint.pulse{animation:pulse 2.6s ease-in-out infinite}
+  @keyframes pulse{0%,100%{opacity:.35}50%{opacity:.85}}
+  #line{top:max(10vh, calc(env(safe-area-inset-top) + 36px));font-size:clamp(22px,6vw,34px);font-style:italic;
+    color:var(--cream);opacity:0;transition:opacity 1.4s ease;text-shadow:0 0 20px rgba(0,0,0,.9)}
+
+  /* Portada */
+  #cover{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    text-align:center;padding:32px;background:radial-gradient(ellipse at 50% 60%, #120d08 0%, var(--ink) 70%);
+    z-index:20;transition:opacity 1.6s ease}
+  #cover .kicker{font-family:var(--sans);font-weight:300;font-size:12px;letter-spacing:.45em;text-transform:uppercase;color:var(--gold-soft)}
+  #cover h1{font-weight:400;font-style:italic;font-size:clamp(46px,14vw,84px);color:var(--cream);margin:.25em 0 .2em;line-height:1}
+  #cover p{font-size:clamp(18px,5vw,23px);color:rgba(246,233,207,.72);max-width:330px;line-height:1.35}
+  #cover .rule{width:46px;height:1px;background:var(--gold-deep);margin:26px auto}
+  #start{margin-top:34px;font-family:var(--sans);font-weight:400;font-size:13px;letter-spacing:.32em;text-transform:uppercase;
+    color:var(--ink);background:var(--gold);border:0;border-radius:999px;padding:17px 34px;cursor:pointer;
+    box-shadow:0 0 40px rgba(233,194,122,.25)}
+  #start:active{transform:scale(.97)}
+  #cover .small{margin-top:22px;font-family:var(--sans);font-size:11px;letter-spacing:.18em;color:rgba(246,233,207,.38);text-transform:uppercase}
+
+  /* Secuencia final */
+  #reveal{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;
+    pointer-events:none;z-index:8;padding:0 30px}
+  #reveal span{position:absolute;opacity:0;transition:opacity 1.3s ease, transform 1.3s ease;transform:translateY(8px);
+    font-size:clamp(28px,8.5vw,52px);line-height:1.1;color:var(--cream);text-shadow:0 0 30px rgba(0,0,0,.95),0 0 60px rgba(0,0,0,.9)}
+  #reveal span.on{opacity:1;transform:none}
+  #reveal span.mj{font-weight:500;letter-spacing:.02em}
+  #reveal span.mj i{display:block;font-weight:400;font-size:.52em;color:var(--gold);margin-top:.35em}
+
+  #veil{position:absolute;inset:0;z-index:7;pointer-events:none;opacity:0;transition:opacity 1.8s ease;
+    background:radial-gradient(ellipse 80% 24% at 50% 50%, rgba(6,5,4,.9) 0%, rgba(6,5,4,.62) 50%, rgba(6,5,4,0) 100%)}
+  #veil.on{opacity:1}
+  /* Entrada */
+  #ticketWrap{position:absolute;inset:0;z-index:12;display:flex;align-items:center;justify-content:center;
+    padding:24px;background:rgba(6,5,4,0);pointer-events:none;transition:background 1.6s ease}
+  #ticketWrap.on{background:rgba(6,5,4,.32);pointer-events:auto}
+  .ticket{width:min(360px,92vw);position:relative;opacity:0;transform:translateY(40px) scale(.96);
+    transition:opacity 1.4s ease, transform 1.4s cubic-bezier(.2,.8,.2,1)}
+  #ticketWrap.on .ticket{opacity:1;transform:none}
+  .t-main,.t-stub{background:linear-gradient(160deg,#1b140c 0%,#0f0b07 100%);border:1px solid rgba(233,194,122,.45)}
+  .t-main{border-radius:18px 18px 6px 6px;border-bottom:none;padding:28px 24px 22px;text-align:center;position:relative;
+    box-shadow:0 20px 80px rgba(0,0,0,.8), 0 0 60px rgba(233,160,70,.12)}
+  .t-stub{border-radius:6px 6px 18px 18px;border-top:none;padding:18px 24px 22px;text-align:center;position:relative}
+  .perf{height:0;border-top:1px dashed rgba(233,194,122,.5);margin:0 14px;position:relative}
+  .perf:before,.perf:after{content:"";position:absolute;top:-11px;width:22px;height:22px;border-radius:50%;background:var(--ink);
+    border:1px solid rgba(233,194,122,.45)}
+  .perf:before{left:-26px;clip-path:inset(0 0 0 50%)} .perf:after{right:-26px;clip-path:inset(0 50% 0 0)}
+  .t-kick{font-family:var(--sans);font-weight:300;font-size:10.5px;letter-spacing:.42em;text-transform:uppercase;color:var(--gold-soft)}
+  .t-title{font-size:30px;line-height:1.05;margin:12px 0 4px;color:var(--cream);font-weight:500}
+  .t-title em{display:block;font-weight:400;color:var(--gold);font-size:.78em}
+  .t-city{font-family:var(--sans);font-size:11px;letter-spacing:.3em;text-transform:uppercase;color:rgba(246,233,207,.55);margin-top:8px}
+  .t-rows{margin-top:20px;display:grid;gap:12px;text-align:left}
+  .t-row{display:flex;justify-content:space-between;gap:14px;border-top:1px solid rgba(233,194,122,.16);padding-top:10px}
+  .t-row b{font-family:var(--sans);font-weight:400;font-size:10px;letter-spacing:.28em;text-transform:uppercase;color:var(--gold-soft);padding-top:4px}
+  .t-row span{font-size:19px;color:var(--cream);text-align:right}
+  .t-msg{font-style:italic;font-size:20px;line-height:1.3;color:var(--cream)}
+  .t-sign{margin-top:10px;font-family:var(--sans);font-size:11px;letter-spacing:.3em;text-transform:uppercase;color:var(--gold-soft)}
+  .t-flame{width:22px;height:34px;margin:0 auto}
+  #again{display:block;margin:18px auto 0;background:none;border:1px solid rgba(233,194,122,.4);color:rgba(246,233,207,.75);
+    font-family:var(--sans);font-size:11px;letter-spacing:.28em;text-transform:uppercase;padding:11px 20px;border-radius:999px;cursor:pointer;
+    opacity:0;transition:opacity 1s ease 1.5s}
+  #ticketWrap.on #again{opacity:1}
+  .hide{opacity:0 !important;pointer-events:none !important}
+</style>
+</head>
+<body>
+<div id="stage">
+  <div id="hidden"></div>
+  <canvas id="cv"></canvas>
+  <div id="line" class="ui"></div>
+  <div id="hint" class="ui"></div>
+  <div id="veil"></div>
+  <div id="reveal"></div>
+
+  <div id="ticketWrap">
+    <div class="ticket">
+      <div class="t-main">
+        <svg class="t-flame" viewBox="0 0 22 34" aria-hidden="true">
+          <defs><radialGradient id="fg" cx="50%" cy="65%" r="60%"><stop offset="0" stop-color="#fff6d8"/><stop offset=".45" stop-color="#ffc861"/><stop offset="1" stop-color="#e2701d" stop-opacity="0"/></radialGradient></defs>
+          <path d="M11 1 C 15 9, 20 14, 20 22 A 9 9 0 0 1 2 22 C 2 14, 7 9, 11 1 Z" fill="url(#fg)"/>
+        </svg>
+        <div class="t-kick" style="margin-top:10px">Regalo de cumpleaños</div>
+        <div class="t-title">Candlelight<em>Tributo a Michael Jackson</em></div>
+        <div class="t-city">Madrid</div>
+        <div class="t-rows" id="rows"></div>
+      </div>
+      <div class="perf"></div>
+      <div class="t-stub">
+        <div class="t-msg" id="tmsg"></div>
+        <div class="t-sign" id="tsign"></div>
+      </div>
+      <button id="again" type="button">Volver a verlo</button>
+    </div>
+  </div>
+
+  <div id="cover">
+    <div class="kicker" id="cKick">Un regalo para ti</div>
+    <h1 id="cName">Mamá</h1>
+    <div class="rule"></div>
+    <p>Antes de empezar, apaga la luz de la habitación y sube un poco el volumen.</p>
+    <button id="start" type="button">Ya está apagada</button>
+    <div class="small">Toca para empezar</div>
+  </div>
+</div>
+
+<script>
+/* =========================================================
+   PERSONALIZA AQUÍ (deja "" lo que no quieras que salga)
+   ========================================================= */
+const CONFIG = {
+  nombre:   "Mamá",                // cómo aparece en la portada y la felicitación
+  firma:    "",                    // quién firma la entrada (vacío = sin firma)
+  fecha:    "",                    // p. ej. "Sábado 12 de diciembre"
+  hora:     "",                    // p. ej. "21:00"
+  lugar:    "",                    // p. ej. "Four Seasons Hotel Madrid"
+  entradas: "",                    // p. ej. "2 · para ti y para papá"
+  mensaje:  "Esta vez las velas no se soplan: se escuchan. Feliz cumpleaños.",
+  velasParaDesvelar: 9             // velas que tiene que encender antes del final
+};
+
+/* Títulos que aparecen escritos en la oscuridad (están en el programa del concierto) */
+const TITULOS = [
+  ["Thriller",.27,.165],["Billie Jean",.71,.195],["Beat It",.2,.27],["Smooth Criminal",.62,.305],
+  ["Rock with You",.3,.635],["Bad",.84,.6],["Heal the World",.68,.685],
+  ["Remember the Time",.38,.75],["I Want You Back",.62,.825]
+];
+
+/* ---------- utilidades ---------- */
+const $ = s => document.querySelector(s);
+const stage=$("#stage"), hidden=$("#hidden"), cv=$("#cv"), ctx=cv.getContext("2d");
+const hint=$("#hint"), line=$("#line"), reveal=$("#reveal"), cover=$("#cover"), tw=$("#ticketWrap");
+let W=0,H=0,DPR=1;
+const sleep = ms => new Promise(r=>setTimeout(r,ms));
+const rand = (a,b)=>a+Math.random()*(b-a);
+
+/* ---------- textos personalizados ---------- */
+$("#cName").textContent = CONFIG.nombre;
+document.title = "Para ti, " + CONFIG.nombre;
+$("#tmsg").textContent = CONFIG.mensaje;
+$("#tsign").textContent = CONFIG.firma ? "Con cariño, " + CONFIG.firma : "";
+(function rows(){
+  const r=[["Para",CONFIG.nombre],["Fecha",CONFIG.fecha],["Hora",CONFIG.hora],["Lugar",CONFIG.lugar],["Entradas",CONFIG.entradas]];
+  $("#rows").innerHTML = r.filter(x=>x[1]).map(([k,v])=>`<div class="t-row"><b>${k}</b><span>${v}</span></div>`).join("");
+})();
+
+/* ---------- capa de palabras ocultas ---------- */
+function buildHidden(){
+  hidden.innerHTML="";
+  const big=document.createElement("div");
+  big.className="word big";
+  big.style.left="50%"; big.style.top="47%";
+  big.style.fontSize="clamp(44px,13vw,96px)";
+  big.innerHTML=`<small>Hoy es tu día</small>Feliz<br>cumpleaños,<br><em>${CONFIG.nombre}</em>`;
+  hidden.appendChild(big);
+  // posiciones repartidas alrededor del mensaje central (fracciones de pantalla)
+  TITULOS.forEach(([t,x,y])=>{
+    const w=document.createElement("div");
+    w.className="word"; w.textContent=t;
+    w.style.left=(x*100)+"%"; w.style.top=(y*100)+"%";
+    w.style.setProperty("--r",(rand(-7,7)).toFixed(1)+"deg");
+    w.style.fontSize=`clamp(19px,${rand(5.2,6.4).toFixed(1)}vw,38px)`;
+    w.style.opacity=(0.62+Math.random()*.3).toFixed(2);
+    hidden.appendChild(w);
+  });
+}
+
+/* ---------- audio (síntesis propia, sin música externa) ---------- */
+let AC=null, master=null, padNodes=[];
+function initAudio(){
+  try{
+    AC=new (window.AudioContext||window.webkitAudioContext)();
+    master=AC.createGain(); master.gain.value=.9;
+    const comp=AC.createDynamicsCompressor(); master.connect(comp); comp.connect(AC.destination);
+    // reverb sencillo
+    const conv=AC.createConvolver(); const len=AC.sampleRate*3.2;
+    const buf=AC.createBuffer(2,len,AC.sampleRate);
+    for(let c=0;c<2;c++){const d=buf.getChannelData(c);for(let i=0;i<len;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/len,2.6);}
+    conv.buffer=buf; const wet=AC.createGain(); wet.gain.value=.38; conv.connect(wet); wet.connect(master);
+    window._rev=conv;
+  }catch(e){AC=null}
+}
+function bell(freq, when=0, vol=.22, dur=3.2){
+  if(!AC) return;
+  const t=AC.currentTime+when;
+  [[1,1],[2.01,.28],[3.0,.12],[4.2,.05]].forEach(([m,a])=>{
+    const o=AC.createOscillator(), g=AC.createGain();
+    o.type="sine"; o.frequency.value=freq*m;
+    g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(vol*a,t+.012);
+    g.gain.exponentialRampToValueAtTime(.0001,t+dur/(m>1?m*.8:1));
+    o.connect(g); g.connect(master); if(window._rev) g.connect(window._rev);
+    o.start(t); o.stop(t+dur+.1);
+  });
+}
+function pad(on){
+  if(!AC) return;
+  if(on){
+    const t=AC.currentTime;
+    const lp=AC.createBiquadFilter(); lp.type="lowpass"; lp.frequency.value=700;
+    const g=AC.createGain(); g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(.05,t+4);
+    lp.connect(g); g.connect(master); if(window._rev) g.connect(window._rev);
+    [73.42,110,146.83,110.6].forEach(f=>{const o=AC.createOscillator();o.type="triangle";o.frequency.value=f;o.connect(lp);o.start();padNodes.push(o)});
+    padNodes.push(g); window._padGain=g;
+  }
+}
+function swell(){
+  if(!AC) return;
+  // acorde que crece y cascada de campanas
+  const t=AC.currentTime;
+  if(window._padGain){window._padGain.gain.cancelScheduledValues(t);window._padGain.gain.setValueAtTime(window._padGain.gain.value,t);window._padGain.gain.linearRampToValueAtTime(.12,t+3);window._padGain.gain.linearRampToValueAtTime(.06,t+9)}
+  // arpegio de Re mayor 9 que sube y se queda flotando
+  [N.D4,N.Fs4,N.A4,N.Cs5,N.E5,N.Fs5].forEach((f,i)=>keys(f,.9+i*.16,.13,4.5));
+  chordPad([N.D3,N.A3,N.Cs4,N.E4,N.Fs4],.9,.05,9);
+  [N.D3,N.A3].forEach(f=>bell(f,.9,.1,7));
+}
+const PENTA=[293.66,329.63,369.99,440,493.88,587.33,659.25,739.99,880,987.77,1174.66,1318.5];
+/* Melodía original (no es de ninguna canción): una frase en Re mayor con aire de balada de los 80.
+   Cada vela toca la siguiente nota; el acorde de fondo cambia cada dos velas. */
+const N={D3:146.83,E3:164.81,Fs3:185,G3:196,A3:220,B3:246.94,Cs4:277.18,D4:293.66,E4:329.63,Fs4:369.99,G4:392,A4:440,B4:493.88,Cs5:554.37,D5:587.33,E5:659.25,Fs5:739.99};
+const MELODY=[N.Fs4,N.A4,N.Cs5,N.B4,N.D5,N.B4,N.A4,N.G4,N.Fs4];
+const CHORDS=[
+  [N.D3,N.A3,N.Cs4,N.Fs4],   // Dmaj7
+  [N.D3,N.A3,N.Cs4,N.Fs4],
+  [N.B3*0.5,N.Fs3,N.A3,N.D4],// Bm7
+  [N.B3*0.5,N.Fs3,N.A3,N.D4],
+  [N.G3*0.5,N.D3,N.Fs3,N.B3],// Gmaj7
+  [N.G3*0.5,N.D3,N.Fs3,N.B3],
+  [N.A3*0.5,N.E3,N.G3,N.Cs4],// A7
+  [N.A3*0.5,N.E3,N.G3,N.Cs4],
+  [N.D3,N.A3,N.Cs4,N.E4]     // Dmaj9
+];
+function keys(freq, when=0, vol=.2, dur=2.8){
+  // tecla eléctrica suave tipo años 80: seno + triángulo desafinado + ligero vibrato
+  if(!AC) return;
+  const t=AC.currentTime+when;
+  const out=AC.createGain(); out.gain.setValueAtTime(0,t);
+  out.gain.linearRampToValueAtTime(vol,t+.018); out.gain.exponentialRampToValueAtTime(vol*.35,t+.5);
+  out.gain.exponentialRampToValueAtTime(.0001,t+dur);
+  const lp=AC.createBiquadFilter(); lp.type="lowpass"; lp.frequency.setValueAtTime(4200,t); lp.frequency.exponentialRampToValueAtTime(1400,t+1.2);
+  lp.connect(out); out.connect(master); if(window._rev) out.connect(window._rev);
+  const lfo=AC.createOscillator(), lg=AC.createGain(); lfo.frequency.value=5.2; lg.gain.value=freq*.0035; lfo.connect(lg);
+  [["sine",1,0,1],["triangle",1,+6,.35],["triangle",1,-6,.35],["sine",2,0,.12]].forEach(([type,m,det,a])=>{
+    const o=AC.createOscillator(), g=AC.createGain(); o.type=type; o.frequency.value=freq*m; o.detune.value=det;
+    lg.connect(o.frequency); g.gain.value=a; o.connect(g); g.connect(lp); o.start(t); o.stop(t+dur+.1);
+  });
+  lfo.start(t); lfo.stop(t+dur+.1);
+}
+function chordPad(freqs, when=0, vol=.035, dur=4.5){
+  if(!AC) return;
+  const t=AC.currentTime+when;
+  const g=AC.createGain(); g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(vol,t+.6); g.gain.linearRampToValueAtTime(.0001,t+dur);
+  const lp=AC.createBiquadFilter(); lp.type="lowpass"; lp.frequency.value=1100; lp.connect(g); g.connect(master); if(window._rev) g.connect(window._rev);
+  freqs.forEach(f=>[-7,7].forEach(d=>{const o=AC.createOscillator();o.type="sawtooth";o.frequency.value=f;o.detune.value=d;o.connect(lp);o.start(t);o.stop(t+dur+.1)}));
+}
+function playStep(i){
+  const k=Math.min(i,MELODY.length-1);
+  keys(MELODY[k],0,.22);
+  if(k%2===0 || k===MELODY.length-1) chordPad(CHORDS[k],0,.03,k===MELODY.length-1?7:4.6);
+}
+
+/* ---------- velas (canvas) ---------- */
+const candles=[];   // {x,y,born,scale,seed,main}
+let glowSprite=null;
+function makeSprite(){
+  const s=document.createElement("canvas"); const R=256; s.width=s.height=R*2;
+  const g=s.getContext("2d"); const gr=g.createRadialGradient(R,R,0,R,R,R);
+  gr.addColorStop(0,"rgba(255,190,110,.55)"); gr.addColorStop(.25,"rgba(255,150,60,.22)");
+  gr.addColorStop(.6,"rgba(200,90,30,.06)"); gr.addColorStop(1,"rgba(0,0,0,0)");
+  g.fillStyle=gr; g.fillRect(0,0,R*2,R*2); glowSprite=s;
+}
+function resize(){
+  DPR=Math.min(window.devicePixelRatio||1,2);
+  W=stage.clientWidth; H=stage.clientHeight;
+  cv.width=W*DPR; cv.height=H*DPR; ctx.setTransform(DPR,0,0,DPR,0,0);
+  updateMask();
+}
+function drawCandle(c,now){
+  const age=(now-c.born)/1000; if(age<0) return;
+  const k=Math.min(1,age/.7), s=c.scale*(c.main?1:1);
+  const fl=Math.sin(now/90+c.seed)*.06+Math.sin(now/37+c.seed*3)*.04+Math.sin(now/210+c.seed*7)*.05;
+  const x=c.x, y=c.y;
+  // halo
+  ctx.globalCompositeOperation="lighter";
+  const gr=(c.main?230:150)*s*(.9+fl)*k;
+  ctx.globalAlpha=c.main?.9:.42;
+  ctx.drawImage(glowSprite,x-gr,y-10*s-gr,gr*2,gr*2);
+  ctx.globalAlpha=1;
+  ctx.globalCompositeOperation="source-over";
+  // cera
+  const cw=14*s, ch=(c.main?44:30)*s;
+  const wax=ctx.createLinearGradient(x-cw/2,0,x+cw/2,0);
+  wax.addColorStop(0,"#5b4630"); wax.addColorStop(.45,"#f3e3c4"); wax.addColorStop(1,"#6d5539");
+  ctx.fillStyle=wax; ctx.beginPath();
+  ctx.roundRect ? ctx.roundRect(x-cw/2,y,cw,ch,[2*s,2*s,1,1]) : ctx.rect(x-cw/2,y,cw,ch);
+  ctx.fill();
+  // mecha
+  ctx.strokeStyle="#2a1d12"; ctx.lineWidth=1.4*s; ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x,y-5*s); ctx.stroke();
+  // llama
+  const fh=(22+fl*14)*s*k, fw=7*s*k, sway=Math.sin(now/160+c.seed)*1.6*s;
+  ctx.globalCompositeOperation="lighter";
+  const fg=ctx.createRadialGradient(x,y-6*s,0,x,y-fh*.45,fh*.75);
+  fg.addColorStop(0,"rgba(255,250,225,1)"); fg.addColorStop(.35,"rgba(255,206,110,.95)");
+  fg.addColorStop(.75,"rgba(240,120,40,.55)"); fg.addColorStop(1,"rgba(200,60,10,0)");
+  ctx.fillStyle=fg; ctx.beginPath();
+  ctx.moveTo(x+sway,y-5*s-fh);
+  ctx.bezierCurveTo(x+fw*1.1,y-5*s-fh*.45, x+fw,y-3*s, x,y-2*s);
+  ctx.bezierCurveTo(x-fw,y-3*s, x-fw*1.1,y-5*s-fh*.45, x+sway,y-5*s-fh);
+  ctx.fill();
+  ctx.globalCompositeOperation="source-over";
+}
+let sparks=[];
+function loop(now){
+  ctx.clearRect(0,0,W,H);
+  // las velas lejanas primero
+  for(const c of candles) if(!c.main) drawCandle(c,now);
+  for(const c of candles) if(c.main) drawCandle(c,now);
+  // chispas
+  ctx.globalCompositeOperation="lighter";
+  sparks=sparks.filter(p=>p.life>0);
+  for(const p of sparks){p.x+=p.vx;p.y+=p.vy;p.vy-=.01;p.life-=.012;
+    ctx.fillStyle=`rgba(255,${190+Math.random()*50|0},120,${Math.max(0,p.life)})`;ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,7);ctx.fill();}
+  ctx.globalCompositeOperation="source-over";
+  requestAnimationFrame(loop);
+}
+
+/* ---------- máscara de luz ---------- */
+let lightR = []; // radio animado por vela principal
+function updateMask(){
+  if(hidden.classList.contains("full")) return;
+  const mains=candles.filter(c=>c.main);
+  if(!mains.length){hidden.style.webkitMaskImage=hidden.style.maskImage="radial-gradient(circle at 50% 50%, transparent 0, transparent 1px)";return;}
+  const base=Math.min(W,H);
+  const parts=mains.map((c,i)=>{
+    const r=(lightR[i]||0)*base;
+    return `radial-gradient(circle at ${c.x}px ${c.y-14}px, rgba(0,0,0,1) 0, rgba(0,0,0,.75) ${r*.45}px, rgba(0,0,0,.25) ${r*.8}px, transparent ${r}px)`;
+  });
+  // luz ambiental que crece con cada vela
+  const amb=Math.min(.24, mains.length*.026);
+  parts.push(`linear-gradient(rgba(0,0,0,${amb}),rgba(0,0,0,${amb}))`);
+  const m=parts.join(",");
+  hidden.style.webkitMaskImage=m; hidden.style.maskImage=m;
+}
+function growLight(i){
+  const target=.42, t0=performance.now();
+  (function step(now){const k=Math.min(1,(now-t0)/1100);lightR[i]=target*(1-Math.pow(1-k,3));updateMask();if(k<1)requestAnimationFrame(step)})(t0);
+}
+
+/* ---------- flujo ---------- */
+let phase="cover", lit=0, idleTimer=null;
+function setHint(t,pulse){hint.textContent=t;hint.classList.toggle("pulse",!!pulse);hint.classList.remove("hide")}
+async function setLine(t){line.style.opacity=0;await sleep(t?500:0);line.textContent=t;line.style.opacity=t?1:0}
+function armIdle(){clearTimeout(idleTimer);idleTimer=setTimeout(()=>{if(phase==="light")setHint("Toca donde quieras",true)},9000)}
+
+$("#start").addEventListener("click",async e=>{
+  e.stopPropagation();
+  initAudio(); try{AC&&AC.resume()}catch(_){}
+  try{const el=document.documentElement;(el.requestFullscreen||el.webkitRequestFullscreen||function(){}).call(el)}catch(_){}
+  bell(293.66,0,.12,4);
+  cover.classList.add("hide");
+  pad(true);
+  await sleep(1800);
+  await setLine("La sala está a oscuras…");
+  await sleep(2600);
+  await setLine("…pero hay algo escrito en ella.");
+  await sleep(2400);
+  setHint("Toca la pantalla para encender una vela",true);
+  phase="light"; armIdle();
+});
+
+stage.addEventListener("pointerdown",e=>{
+  if(phase!=="light") return;
+  const r=stage.getBoundingClientRect();
+  let x=e.clientX-r.left, y=e.clientY-r.top;
+  // que la vela no tape el texto de abajo ni salga de pantalla
+  x=Math.max(24,Math.min(W-24,x)); y=Math.max(Math.min(140,H*.17),Math.min(H-Math.max(130,H*.15),y));
+  lightCandle(x,y);
+});
+
+function lightCandle(x,y){
+  const i=candles.filter(c=>c.main).length;
+  candles.push({x,y,born:performance.now(),scale:Math.min(1.25,Math.max(.9,Math.min(W,H)/380)),seed:Math.random()*100,main:true});
+  lightR[i]=0; growLight(i);
+  for(let k=0;k<14;k++)sparks.push({x,y:y-12,vx:rand(-.8,.8),vy:rand(-1.6,-.4),r:rand(.6,1.6),life:rand(.5,1)});
+  playStep(i);
+  try{navigator.vibrate&&navigator.vibrate(12)}catch(_){}
+  lit++; armIdle();
+  const goal=CONFIG.velasParaDesvelar;
+  if(lit===1){setHint("Sigue encendiendo velas");setLine("")}
+  else if(lit===3) setLine("¿Ves lo que pone?");
+  else if(lit===Math.ceil(goal*.66)) setLine("Ya casi…");
+  if(lit>=goal){phase="finale";clearTimeout(idleTimer);finale()}
+}
+
+async function finale(){
+  hint.classList.add("hide"); setLine("");
+  await sleep(900);
+  swell();
+  // la luz lo inunda todo
+  hidden.classList.add("full");
+  // cientos de velas aparecen desde las que ha encendido ella
+  const mains=candles.filter(c=>c.main);
+  const n=Math.round(Math.min(170,Math.max(90,W*H/4200)));
+  const now=performance.now();
+  for(let k=0;k<n;k++){
+    const y=rand(H*.05,H*.98);
+    const x=rand(10,W-10);
+    // distancia a la vela suya más cercana -> retraso (efecto onda)
+    let d=1e9; for(const m of mains){d=Math.min(d,Math.hypot(m.x-x,m.y-y))}
+    const depth=y/H; // más abajo = más cerca = más grande
+    candles.push({x,y,born:now+d*4.2+rand(0,300),scale:.28+depth*.55,seed:Math.random()*100,main:false});
+  }
+  candles.sort((a,b)=>a.y-b.y);
+  await sleep(5200);
+  // atenuar palabras para dar paso a la revelación
+  hidden.style.opacity=0; $("#veil").classList.add("on");
+  await sleep(1600);
+  const lines=[
+    `<span>Thriller. Billie Jean.<br>Beat It. Smooth Criminal…</span>`,
+    `<span>¿Ya sabes quién va a sonar?</span>`,
+    `<span class="mj">Michael Jackson<i>a la luz de cientos de velas</i></span>`
+  ];
+  for(const h of lines){
+    reveal.innerHTML=h; const s=reveal.firstChild; await sleep(60); s.classList.add("on");
+    keys(N.A4,0,.06,3);
+    await sleep(3000); s.classList.remove("on"); await sleep(1100);
+  }
+  reveal.innerHTML="";
+  hidden.style.opacity=.35;
+  keys(N.Fs4,0,.12,5); keys(N.A4,.18,.1,5); keys(N.D5,.36,.1,6); chordPad([N.D3,N.A3,N.Fs4],0,.035,7);
+  tw.classList.add("on");
+}
+
+$("#again").addEventListener("click",e=>{e.stopPropagation();location.reload()});
+
+/* ---------- arranque ---------- */
+makeSprite(); buildHidden(); resize();
+window.addEventListener("resize",resize);
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
